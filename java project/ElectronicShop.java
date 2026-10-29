@@ -37,6 +37,21 @@ class Customer {
     }
 }
 
+// ================= CART ITEM =================
+class CartItem {
+    Product product;
+    int qty;
+
+    CartItem(Product product, int qty) {
+        this.product = product;
+        this.qty = qty;
+    }
+
+    double subtotal() {
+        return product.price * qty;
+    }
+}
+
 // ================= MAIN CLASS =================
 public class ElectronicShop extends JFrame {
 
@@ -513,132 +528,138 @@ public class ElectronicShop extends JFrame {
         }
     }
 
-    // ================= SALES =================
+    // ================= SALES (MULTI-ITEM CART) =================
     void salesWindow() {
 
         JFrame frame = new JFrame("Sales");
-        frame.setSize(500, 400);
+        frame.setSize(750, 600);
         frame.setLocationRelativeTo(this);
+        frame.setLayout(new BorderLayout(10, 10));
 
-        JPanel panel = new JPanel(
-                new GridLayout(5, 2, 10, 10));
+        ArrayList<CartItem> cart = new ArrayList<>();
 
-        panel.setBorder(
-                BorderFactory.createEmptyBorder(
-                        30, 30, 30, 30));
+        // ---------- TOP: input fields ----------
+        JPanel top = new JPanel(new GridLayout(4, 2, 10, 10));
+        top.setBorder(BorderFactory.createEmptyBorder(
+                20, 30, 10, 30));
 
-        JTextField customerId =
-                new JTextField();
+        JTextField customerId = new JTextField();
+        JTextField productId = new JTextField();
+        JTextField quantity = new JTextField();
+        JButton addToCart = new JButton("Add to Cart");
 
-        JTextField productId =
-                new JTextField();
+        top.add(new JLabel("Customer ID:"));
+        top.add(customerId);
 
-        JTextField quantity =
-                new JTextField();
+        top.add(new JLabel("Product ID:"));
+        top.add(productId);
 
-        JButton sell =
-                new JButton("Generate Bill");
+        top.add(new JLabel("Quantity:"));
+        top.add(quantity);
 
-        panel.add(new JLabel("Customer ID:"));
-        panel.add(customerId);
+        top.add(new JLabel(""));
+        top.add(addToCart);
 
-        panel.add(new JLabel("Product ID:"));
-        panel.add(productId);
+        // ---------- CENTER: cart table ----------
+        DefaultTableModel cartModel = new DefaultTableModel(
+                new String[]{"Product ID", "Name", "Price",
+                        "Qty", "Subtotal"}, 0) {
 
-        panel.add(new JLabel("Quantity:"));
-        panel.add(quantity);
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
 
-        panel.add(new JLabel(""));
-        panel.add(sell);
+        JTable cartTable = new JTable(cartModel);
 
-        frame.add(panel);
+        JScrollPane cartScroll = new JScrollPane(cartTable);
+        cartScroll.setBorder(BorderFactory.createTitledBorder("Cart"));
 
-        sell.addActionListener(e -> {
+        // ---------- BOTTOM: total + buttons ----------
+        JLabel totalLabel = new JLabel("Total: ₹0.0");
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
+
+        JButton remove = new JButton("Remove Selected");
+        JButton clear = new JButton("Clear Cart");
+        JButton bill = new JButton("Generate Bill");
+
+        JPanel bottom = new JPanel(new FlowLayout(
+                FlowLayout.CENTER, 15, 10));
+
+        bottom.add(remove);
+        bottom.add(clear);
+        bottom.add(totalLabel);
+        bottom.add(bill);
+
+        frame.add(top, BorderLayout.NORTH);
+        frame.add(cartScroll, BorderLayout.CENTER);
+        frame.add(bottom, BorderLayout.SOUTH);
+
+        // ---------- ADD TO CART ----------
+        addToCart.addActionListener(e -> {
 
             try {
 
-                int cid = Integer.parseInt(
-                        customerId.getText());
-
                 int pid = Integer.parseInt(
-                        productId.getText());
+                        productId.getText().trim());
 
                 int qty = Integer.parseInt(
-                        quantity.getText());
+                        quantity.getText().trim());
+
+                if (qty <= 0) {
+                    JOptionPane.showMessageDialog(
+                            frame, "Quantity must be at least 1!");
+                    return;
+                }
 
                 Product selected = null;
-                Customer customer = null;
 
                 for (Product p : products) {
-
                     if (p.id == pid) {
                         selected = p;
                         break;
                     }
                 }
 
-                for (Customer c : customers) {
+                if (selected == null) {
+                    JOptionPane.showMessageDialog(
+                            frame, "Product not found!");
+                    return;
+                }
 
-                    if (c.id == cid) {
-                        customer = c;
+                CartItem existing = null;
+
+                for (CartItem item : cart) {
+                    if (item.product.id == pid) {
+                        existing = item;
                         break;
                     }
                 }
 
-                if (selected == null) {
+                int alreadyInCart = (existing == null) ? 0 : existing.qty;
+
+                if (alreadyInCart + qty > selected.stock) {
 
                     JOptionPane.showMessageDialog(
-                            frame, "Product not found!");
-
+                            frame,
+                            "Insufficient stock!\n" +
+                            "Available: " + selected.stock +
+                            "\nAlready in cart: " + alreadyInCart);
                     return;
                 }
 
-                if (customer == null) {
-
-                    JOptionPane.showMessageDialog(
-                            frame, "Customer not found!");
-
-                    return;
+                if (existing != null) {
+                    existing.qty += qty;
+                } else {
+                    cart.add(new CartItem(selected, qty));
                 }
 
-                if (qty > selected.stock) {
+                refreshCart(cartModel, cart, totalLabel);
 
-                    JOptionPane.showMessageDialog(
-                            frame, "Insufficient stock!");
-
-                    return;
-                }
-
-                double total =
-                        selected.price * qty;
-
-                selected.stock -= qty;
-
-                refreshProducts();
-
-                JOptionPane.showMessageDialog(
-                        frame,
-
-                        "========== BILL ==========\n\n" +
-
-                        "Customer: " +
-                        customer.name +
-
-                        "\nProduct: " +
-                        selected.name +
-
-                        "\nQuantity: " +
-                        qty +
-
-                        "\nPrice: ₹" +
-                        selected.price +
-
-                        "\n--------------------------" +
-
-                        "\nTOTAL: ₹" +
-                        total +
-
-                        "\n\nThank You!");
+                productId.setText("");
+                quantity.setText("");
+                productId.requestFocus();
 
             } catch (Exception ex) {
 
@@ -647,7 +668,162 @@ public class ElectronicShop extends JFrame {
             }
         });
 
+        // ---------- REMOVE SELECTED ----------
+        remove.addActionListener(e -> {
+
+            int row = cartTable.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(
+                        frame, "Select an item in the cart!");
+                return;
+            }
+
+            cart.remove(row);
+
+            refreshCart(cartModel, cart, totalLabel);
+        });
+
+        // ---------- CLEAR CART ----------
+        clear.addActionListener(e -> {
+
+            cart.clear();
+
+            refreshCart(cartModel, cart, totalLabel);
+        });
+
+        // ---------- GENERATE BILL ----------
+        bill.addActionListener(e -> {
+
+            try {
+
+                int cid = Integer.parseInt(
+                        customerId.getText().trim());
+
+                Customer customer = null;
+
+                for (Customer c : customers) {
+                    if (c.id == cid) {
+                        customer = c;
+                        break;
+                    }
+                }
+
+                if (customer == null) {
+                    JOptionPane.showMessageDialog(
+                            frame, "Customer not found!");
+                    return;
+                }
+
+                if (cart.isEmpty()) {
+                    JOptionPane.showMessageDialog(
+                            frame, "Cart is empty!");
+                    return;
+                }
+
+                // re-check stock before billing
+                for (CartItem item : cart) {
+
+                    if (item.qty > item.product.stock) {
+
+                        JOptionPane.showMessageDialog(
+                                frame,
+                                "Insufficient stock for " +
+                                item.product.name +
+                                "!\nAvailable: " +
+                                item.product.stock);
+                        return;
+                    }
+                }
+
+                StringBuilder receipt = new StringBuilder();
+
+                receipt.append("============== BILL ==============\n\n");
+                receipt.append("Customer : ").append(customer.name).append("\n");
+                receipt.append("Phone    : ").append(customer.phone).append("\n\n");
+
+                receipt.append(String.format(
+                        "%-18s %4s %10s %12s\n",
+                        "Item", "Qty", "Price", "Subtotal"));
+
+                receipt.append("--------------------------------------------\n");
+
+                double grandTotal = 0;
+
+                for (CartItem item : cart) {
+
+                    double sub = item.subtotal();
+                    grandTotal += sub;
+
+                    item.product.stock -= item.qty;
+
+                    receipt.append(String.format(
+                            "%-18s %4d %10.2f %12.2f\n",
+                            item.product.name,
+                            item.qty,
+                            item.product.price,
+                            sub));
+                }
+
+                receipt.append("--------------------------------------------\n");
+
+                receipt.append(String.format(
+                        "%-18s %4s %10s %12.2f\n",
+                        "TOTAL (Rs.)", "", "", grandTotal));
+
+                receipt.append("\n        Thank You! Visit Again!");
+
+                JTextArea area = new JTextArea(receipt.toString());
+                area.setFont(new Font("Monospaced", Font.PLAIN, 13));
+                area.setEditable(false);
+
+                JScrollPane scroll = new JScrollPane(area);
+                scroll.setPreferredSize(new Dimension(480, 320));
+
+                JOptionPane.showMessageDialog(
+                        frame, scroll, "Bill",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                cart.clear();
+
+                refreshCart(cartModel, cart, totalLabel);
+                refreshProducts();
+
+                customerId.setText("");
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        frame, "Invalid Customer ID!");
+            }
+        });
+
         frame.setVisible(true);
+    }
+
+    // ================= REFRESH CART =================
+    void refreshCart(DefaultTableModel model,
+                     ArrayList<CartItem> cart,
+                     JLabel totalLabel) {
+
+        model.setRowCount(0);
+
+        double total = 0;
+
+        for (CartItem item : cart) {
+
+            model.addRow(new Object[]{
+                    item.product.id,
+                    item.product.name,
+                    item.product.price,
+                    item.qty,
+                    item.subtotal()
+            });
+
+            total += item.subtotal();
+        }
+
+        totalLabel.setText("Total: ₹" + total);
     }
 
     // ================= INVENTORY =================
