@@ -1,7 +1,7 @@
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayList;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 
 // ================= PRODUCT =================
 class Product {
@@ -54,7 +54,6 @@ public class ElectronicShop extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Sample products
         products.add(new Product(
                 101, "Samsung S25", "Mobile",
                 79999, 10, "1 Year"));
@@ -117,19 +116,27 @@ public class ElectronicShop extends JFrame {
 
         productModel = new DefaultTableModel(
                 new String[]{"ID", "Name", "Category",
-                        "Price", "Stock", "Warranty"}, 0);
+                        "Price", "Stock", "Warranty"}, 0) {
+
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
 
         JTable table = new JTable(productModel);
 
         refreshProducts();
 
         JButton add = new JButton("Add Product");
+        JButton edit = new JButton("Edit Product");
         JButton delete = new JButton("Delete Product");
         JButton search = new JButton("Search Product");
 
         JPanel bottom = new JPanel();
 
         bottom.add(add);
+        bottom.add(edit);
         bottom.add(delete);
         bottom.add(search);
 
@@ -170,6 +177,98 @@ public class ElectronicShop extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         frame, "Product Added Successfully!");
+
+            } catch (Exception ex) {
+
+                JOptionPane.showMessageDialog(
+                        frame, "Invalid Input!");
+            }
+        });
+
+        // EDIT PRODUCT
+        edit.addActionListener(e -> {
+
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(
+                        frame, "Select a product first!");
+                return;
+            }
+
+            int id = (int) productModel.getValueAt(row, 0);
+
+            Product p = null;
+
+            for (Product item : products) {
+                if (item.id == id) {
+                    p = item;
+                    break;
+                }
+            }
+
+            if (p == null) return;
+
+            JTextField idField = new JTextField(String.valueOf(p.id));
+            idField.setEditable(false);
+
+            JTextField nameField = new JTextField(p.name);
+            JTextField categoryField = new JTextField(p.category);
+            JTextField priceField = new JTextField(String.valueOf(p.price));
+            JTextField stockField = new JTextField(String.valueOf(p.stock));
+            JTextField warrantyField = new JTextField(p.warranty);
+
+            JPanel form = new JPanel(new GridLayout(6, 2, 10, 10));
+
+            form.add(new JLabel("ID (locked):"));
+            form.add(idField);
+            form.add(new JLabel("Name:"));
+            form.add(nameField);
+            form.add(new JLabel("Category:"));
+            form.add(categoryField);
+            form.add(new JLabel("Price:"));
+            form.add(priceField);
+            form.add(new JLabel("Stock:"));
+            form.add(stockField);
+            form.add(new JLabel("Warranty:"));
+            form.add(warrantyField);
+
+            int option = JOptionPane.showConfirmDialog(
+                    frame, form, "Edit Product",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE);
+
+            if (option != JOptionPane.OK_OPTION) return;
+
+            try {
+
+                String newName = nameField.getText().trim();
+                String newCategory = categoryField.getText().trim();
+                double newPrice = Double.parseDouble(
+                        priceField.getText().trim());
+                int newStock = Integer.parseInt(
+                        stockField.getText().trim());
+                String newWarranty = warrantyField.getText().trim();
+
+                if (newName.isEmpty() || newCategory.isEmpty()
+                        || newWarranty.isEmpty()
+                        || newPrice < 0 || newStock < 0) {
+
+                    JOptionPane.showMessageDialog(
+                            frame, "Invalid Input!");
+                    return;
+                }
+
+                p.name = newName;
+                p.category = newCategory;
+                p.price = newPrice;
+                p.stock = newStock;
+                p.warranty = newWarranty;
+
+                refreshProducts();
+
+                JOptionPane.showMessageDialog(
+                        frame, "Product Updated Successfully!");
 
             } catch (Exception ex) {
 
@@ -256,18 +355,26 @@ public class ElectronicShop extends JFrame {
         frame.setLocationRelativeTo(this);
 
         customerModel = new DefaultTableModel(
-                new String[]{"ID", "Name", "Phone"}, 0);
+                new String[]{"ID", "Name", "Phone"}, 0) {
+
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
 
         JTable table = new JTable(customerModel);
 
         refreshCustomers();
 
         JButton add = new JButton("Add Customer");
+        JButton edit = new JButton("Edit Customer");
         JButton delete = new JButton("Delete Customer");
 
         JPanel bottom = new JPanel();
 
         bottom.add(add);
+        bottom.add(edit);
         bottom.add(delete);
 
         frame.add(new JScrollPane(table),
@@ -300,6 +407,71 @@ public class ElectronicShop extends JFrame {
                 JOptionPane.showMessageDialog(
                         frame, "Invalid Input!");
             }
+        });
+
+        // EDIT CUSTOMER
+        edit.addActionListener(e -> {
+
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(
+                        frame, "Select a customer first!");
+                return;
+            }
+
+            int id = (int) customerModel.getValueAt(row, 0);
+
+            Customer c = null;
+
+            for (Customer item : customers) {
+                if (item.id == id) {
+                    c = item;
+                    break;
+                }
+            }
+
+            if (c == null) return;
+
+            JTextField idField = new JTextField(String.valueOf(c.id));
+            idField.setEditable(false);
+
+            JTextField nameField = new JTextField(c.name);
+            JTextField phoneField = new JTextField(c.phone);
+
+            JPanel form = new JPanel(new GridLayout(3, 2, 10, 10));
+
+            form.add(new JLabel("ID (locked):"));
+            form.add(idField);
+            form.add(new JLabel("Name:"));
+            form.add(nameField);
+            form.add(new JLabel("Phone:"));
+            form.add(phoneField);
+
+            int option = JOptionPane.showConfirmDialog(
+                    frame, form, "Edit Customer",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE);
+
+            if (option != JOptionPane.OK_OPTION) return;
+
+            String newName = nameField.getText().trim();
+            String newPhone = phoneField.getText().trim();
+
+            if (newName.isEmpty() || newPhone.isEmpty()) {
+
+                JOptionPane.showMessageDialog(
+                        frame, "Invalid Input!");
+                return;
+            }
+
+            c.name = newName;
+            c.phone = newPhone;
+
+            refreshCustomers();
+
+            JOptionPane.showMessageDialog(
+                    frame, "Customer Updated Successfully!");
         });
 
         // DELETE CUSTOMER
@@ -441,6 +613,8 @@ public class ElectronicShop extends JFrame {
                         selected.price * qty;
 
                 selected.stock -= qty;
+
+                refreshProducts();
 
                 JOptionPane.showMessageDialog(
                         frame,
