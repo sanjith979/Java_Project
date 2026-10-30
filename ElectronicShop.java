@@ -373,6 +373,12 @@ public class ElectronicShop {
                 System.out.println("Invalid Input!");
                 return;
             }
+            String str = phone + "";
+            if ( str.length() <10 || str.length() > 10) {
+                System.out.println("Invalid Phone Number!");
+                return;
+
+            }
 
             customers.add(new Customer(id, name, phone));
 
